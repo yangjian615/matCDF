@@ -37,18 +37,18 @@
 function [datenumber] = MrCDF_epoch2datenum(t_epoch)
     
     % Determine the epoch type
-		type = MrCDF_EpochType(t_epoch(1));
+		type = MrCDF_Epoch_Type(t_epoch(1));
     
     % Breakdown the epoch value
     switch type
         case 'CDF_EPOCH'
-            datenumber = epochtodatenum(t_epoch);
+            datenumber = spdfepochtodatenum(t_epoch);
             
         case 'CDF_EPOCH16'
-            datenumber = epoch16todatenum(t_epoch);
+            datenumber = spdfepoch16todatenum(t_epoch);
             
             
         case 'CDF_TIME_TT2000'
-            datenumber = tt2000todatenum(t_epoch);
+            datenumber = spdftt2000todatenum(t_epoch);
     end
 end

@@ -46,6 +46,8 @@
 % History:
 %   2014-10-14  -   Written by Matthew Argall
 %   2015-03-07  -   Added the "Validate" parameter. - MRA
+%   2015-04-07  -   Providing time range no longer causes extra call to 
+%                     spdfcdfread. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, varname, varargin)
 
@@ -82,10 +84,10 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 	varsout{1} = varname;
 	
 	% Get a time range?
-	if ~isempty(sTime) || ~isempty(eTime)
-		tf_trange = true;
-	else
+	if isempty(sTime) && isempty(eTime)
 		tf_trange = false;
+	else
+		tf_trange = true;
 	end
 
 %-----------------------------------------------------%
@@ -93,7 +95,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 %-----------------------------------------------------%
 	
 	% Validate file?
-	if tf_validate == false
+	if ~tf_validate
 		cdflib.setValidate('VALIDATEFILEoff')
 	end
 	
@@ -158,31 +160,18 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 	
 
 %-----------------------------------------------------%
-% Prune Output \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+% Extract Data \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 %-----------------------------------------------------%
 	% Cell or data?
 	if length(varsout) == 1
 		data = temp;
-		clear temp
 	else
 		data = temp{1};
 	end
-
-	% Record range to read
-	if ~isempty(sTime)
-		[recrange, depend_0] = MrCDF_Time_RecNum(filename, vname_dep0, sTime, eTime);
-		recrange = recrange + 1;
-	else
-		dims     = size(data);
-		recrange = [1, dims(1)];
-	end
-	
-	% Requested data
-	data     = data(recrange(1):recrange(2), :);
 	
 	% DEPEND_0
 	if nOut > 1
-		depend_0 = temp{2}(recrange(1):recrange(2));
+		depend_0 = temp{2};
 	end
 	
 	% DEPEND_1
@@ -198,5 +187,47 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 	% DEPEND_3
 	if nOut > 4
 		depend_3 = temp{5};
+	end
+	
+	% Clear the temporary array
+	clear temp
+
+%-----------------------------------------------------%
+% Record Range \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+%-----------------------------------------------------%
+	if tf_trange
+		% Determine epoch type
+		epoch_type = MrCDF_Epoch_Type( depend_0(1) );
+		
+		% Complete record range
+		recrange = (1, length( data(:,1) ));
+
+	%-----------------------------------------------------%
+	% Start Time \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+	%-----------------------------------------------------%
+		if ~isempty(sTime)
+			% Convert to epoch
+			sTime_epoch = MrCDF_Epoch_Parse( sTime, epoch_type );
+			
+			% Find record start
+			recrange(1) = find( depend_0 >= sTime_epoch, 1, 'first');
+		end
+
+	%-----------------------------------------------------%
+	% End Time \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+	%-----------------------------------------------------%
+		if ~isempty(eTime)
+			% Convert to epoch
+			eTime_epoch = MrCDF_Epoch_Parse( eTime, epoch_type );
+			
+			% Find last record
+			recrange(2) = find( depend_0 <= eTime_epoch, 1, 'last');
+		end
+
+	%-----------------------------------------------------%
+	% Prune Data \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+	%-----------------------------------------------------%
+		data     = data(recrange(1):recrange(2), :);
+		depend_0 = depend_0(recrange(1):recrange(2));
 	end
 end
