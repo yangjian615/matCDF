@@ -20,23 +20,23 @@
 %
 % :Examples:
 %   Create 10 seconds of data, convert epoch type, then to SSE.
-% 		datetime = repmat( [2015 03 18 0 0], 10, 1 );
-% 		second   = (1:1:10)';
-% 		datetime = [datetime second]
+%     datetime = repmat( [2015 03 18 0 0], 10, 1 );
+%     second   = (1:1:10)';
+%     datetime = [datetime second]
 % 
-% 		t_epoch   = spdfcomputeepoch(   [datetime, zeros(10, 1)] );
-% 		t_epoch16 = spdfcomputeepoch16( [datetime, zeros(10, 4)] );
-% 		t_tt2000  = spdfcomputett2000(  [datetime, zeros(10, 3)] );
+%     t_epoch   = spdfcomputeepoch(   [datetime, zeros(10, 1)] );
+%     t_epoch16 = spdfcomputeepoch16( [datetime, zeros(10, 4)] );
+%     t_tt2000  = spdfcomputett2000(  [datetime, zeros(10, 3)] );
 % 
-% 		MrCDF_epoch2sse(t_epoch)'
-% 		ans =
-% 				 0     1     2     3     4     5     6     7     8     9
-% 		MrCDF_epoch2sse(t_epoch16)'
-% 		ans =
-% 				 0     1     2     3     4     5     6     7     8     9
-% 		MrCDF_epoch2sse(t_tt2000)'
-% 		ans =
-% 		     0  1  2  3  4  5  6  7  8  9 
+%     MrCDF_epoch2sse(t_epoch)'
+%     ans =
+%         0     1     2     3     4     5     6     7     8     9
+%     MrCDF_epoch2sse(t_epoch16)'
+%     ans =
+%         0     1     2     3     4     5     6     7     8     9
+%     MrCDF_epoch2sse(t_tt2000)'
+%     ans =
+%         0  1  2  3  4  5  6  7  8  9 
 %
 % Parameters
 %   T_EPOCH          in, required, type = 'CDF_EPOCH', 'CDF_EPOCH16', or 'CDF_TIME_TT2000'
@@ -59,17 +59,16 @@ function t_sse = MrCDF_epoch2sse(t_epoch, varargin)
 
 	% Reference epoch time
 	index = 1;
-	nArgs = length(varargin);
-	if mod(nArgs, 2) == 1
+	nOptArgs = length(varargin);
+	if mod(nOptArgs, 2) == 1
 		t_ref = varargin{1};
-		index = index + 1;
 	else
 		t_ref = t_epoch(1);
 	end
 
 	% Epoch type
-	if nArgs >= 2
-		epoch_type = varargin{index+1};
+	if nOptArgs >= 2
+		epoch_type = varargin{end};
 	else
 		epoch_type = MrCDF_Epoch_Type(t_epoch);
 	end
@@ -84,7 +83,7 @@ function t_sse = MrCDF_epoch2sse(t_epoch, varargin)
 				      ( t_epoch(:,2) - t_ref(1,2) ) .* 1e-12;
 
 		case 'CDF_TIME_TT2000'
-			t_sse = double( t_epoch - t_ref ) .* 1e-9;	
+			t_sse = double( t_epoch - t_ref ) .* 1e-9;
 			
 		otherwise
 			error( ['Epoch type "' epoch_type '" is not recognized.'] );

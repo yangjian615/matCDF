@@ -28,7 +28,7 @@
 %
 % Returns:
 %    T_EPOCH:     out, required, type = varies
-%									CDF Epoch times have the following types:
+%                 CDF Epoch times have the following types:
 %                     CDF_EPOCH        -  double
 %                     CDF_EPOCH16      -  double complex
 %                     CDF_TIME_TT2000  -  int64

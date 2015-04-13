@@ -35,20 +35,25 @@
 %
 %**************************************************************************
 function [datenumber] = MrCDF_epoch2datenum(t_epoch)
-    
-    % Determine the epoch type
-		type = MrCDF_Epoch_Type(t_epoch(1));
-    
-    % Breakdown the epoch value
-    switch type
-        case 'CDF_EPOCH'
-            datenumber = spdfepochtodatenum(t_epoch);
-            
-        case 'CDF_EPOCH16'
-            datenumber = spdfepoch16todatenum(t_epoch);
-            
-            
-        case 'CDF_TIME_TT2000'
-            datenumber = spdftt2000todatenum(t_epoch);
-    end
+
+	% Determine the epoch type
+	type = MrCDF_Epoch_Type(t_epoch(1));
+
+	% Breakdown the epoch value
+	switch type
+		case 'CDF_EPOCH'
+			datenumber = spdfepochtodatenum(t_epoch);
+		
+		case 'CDF_EPOCH16'
+			datenumber = spdfepoch16todatenum(t_epoch);
+		
+		
+		case 'CDF_TIME_TT2000'
+			% Requires column vector of TT2000 times.
+			if isrow(t_epoch)
+				datenumber = spdftt2000todatenum(t_epoch')';
+			else
+				datenumber = spdftt2000todatenum(t_epoch);
+			end
+	end
 end

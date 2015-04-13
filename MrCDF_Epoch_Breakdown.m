@@ -47,7 +47,7 @@
 %    2015-03-18  -  Updated to use CDF Patch v3.5.1. Removed TYPE parameter. - MRA
 %
 %**************************************************************************
-function [timevec] = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
+function timevec = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
     
 	% Determine the epoch type if it was not given
 	if nargin == 1
@@ -60,16 +60,22 @@ function [timevec] = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
 			% Convert from Epoch to Datenum to Datestr
 			timevec = spdfbreakdownepoch(t_epoch);
 			timevec = [timevec; ...
-			           zeros(3, length(timevec(1,:)))]; % micro-, nano-, pico-seconds 
+			           zeros(3, length(timevec(1,:)))];    % micro-, nano-, pico-seconds 
 
 		case 'CDF_EPOCH16'
 			timevec = spdfbreakdownepoch16(t_epoch);
 
 
 		case 'CDF_TIME_TT2000'
-			timevec = spdfbreakdowntt2000(t_epoch);
+			% spdfbreakdowntt2000 spdf v3.5.1.2 requires column vector
+			%   - Returns Nx9 date vector
+			if isrow(t_epoch)
+				timevec = spdfbreakdowntt2000(t_epoch')';
+			else
+				timevec = spdfbreakdowntt2000(t_epoch);
+			end
 			timevec = [timevec; ...
-			           zeros(1, length(timevec(1,:)))];	% picoseconds
+			           zeros(1, length(timevec(1,:)))];    % picoseconds
 
 		otherwise
 			error('Input TYPE must be "CDF_EPOCH", "CDF_EPOCH16" or "CDF_TIME_TT2000".')

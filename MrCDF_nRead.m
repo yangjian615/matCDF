@@ -1,18 +1,14 @@
 %
 % Name
-%   MrCDF_Read
+%   MrCDF_nRead
 %
 % Purpose
-%   Read CDF variable data and its support data from a file.
+%   Read CDF variable data and its support data from multiple files.
 %
 % Calling Sequence:
-%   DATA = MrCDF_Read(FILENAME, VARNAME)
-%     Open the CDF file FILENAME and read DATA for the variable with
+%   DATA = MrCDF_Read(FILENAMES, VARNAME)
+%     Open the CDF files FILENAMES and read DATA for the variable with
 %     name VARNAME.
-%
-%   DATA = MrCDF_Read(CDF_ID, VARNAME)
-%     Read data from an already open CDF file. CDF_ID is the CDF file
-%     identifier returned by cdflib.open().
 %
 %   DATA = MrCDF_Read(___, 'ParamName', ParamValue)
 %     Any of the parameter name-value pairs listed below.
@@ -22,14 +18,15 @@
 %     variables have 3 dependencies.
 %
 % Parameters:
-%    FILENAME:                in, required, type = char
+%    FILENAME:                in, required, type = char/cell
 %    VARNAME:                 in, required, type = char
 %    'sTime':                 in, optional, type = char, default = ''
 %                             Start time of the interval to be read,
 %                               formatted as an ISO-8601 string.
 %    'eTime':                 in, optional, type = char, default = ''
 %                             End time of the interval to be read,
-%                               formatted as an ISO-8601 string.
+%                               formatted as an ISO-8601 string. The left
+%                               end of the interval is exclusive: [sTime, eTime).
 %    'ConvertEpochToDatenum'  in, optional, type = boolean, default = false
 %                             Convert epoch times to MATLAB datenumbers.
 %    'Validate'               in, optional, type = boolean, default = false
@@ -46,25 +43,22 @@
 %
 % Examples
 %   Read two data files
-%     >> file             = 'mms2_dfg_f128_l1a_20150318_v0.2.0.cdf'
-%     >> [data, depend_0] = MrCDF_nRead(file, 'mms2_dfg_123');
+%     >> files = {'mms2_dfg_f128_l1a_20150318_v0.2.0.cdf', ...
+%                 'mms2_dfg_f128_l1a_20150319_v0.3.0.cdf'}
+%     >> [data, depend_0] = MrCDF_nRead(files, 'mms2_dfg_123');
 %     >> whos data depend_0
 %       Name                 Size                Bytes  Class     Attributes
-%       data          11059200x3             132710400  single              
-%       depend_0      11059200x1              88473600  int64 
+%       data          22117120x3             265405440  single              
+%       depend_0      22117120x1             176936960  int64  
 %
 % MATLAB release(s) MATLAB 7.12 (R2011a), 8.3.0.532 (R2014a)
 % Required Products None
 %
 % History:
-%   2014-10-14  -   Written by Matthew Argall
-%   2015-03-07  -   Added the "Validate" parameter. - MRA
-%   2015-04-07  -   Providing time range no longer causes extra call to 
-%                     spdfcdfread. - MRA
-%   2015-04-12  -   Accept a CDF file ID number as input. - MRA
+%   2015-04-12  -   Written by Matthew Argall
 %
-function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, varname, varargin)
-
+function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
+	
 	% Defaults
 	sTime = '';
 	eTime = '';
@@ -105,8 +99,16 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 	varsout{1} = varname;
 
 %-----------------------------------------------------%
-% Open the File \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+% Open the Files \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 %-----------------------------------------------------%
+
+	% Number of files
+	if ischar(filenames)
+		nFiles    = 1;
+		filenames = { filenames };
+	else
+		nFiles = length(filenames);
+	end
 	
 	% Validate file?
 	validate_in = cdflib.getValidate();
@@ -114,111 +116,151 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 		cdflib.setValidate('VALIDATEFILEoff');
 	end
 	
-	% File name or CDF ID number?
-	if ischar(filename)
-		assert(exist(filename, 'file') == 2, ['File does not exist: "' filename '".']);
-		cdf_id  = cdflib.open(filename);
-		tf_open = true;
-	elseif isa(filename, 'uint64')
-		cdf_id  = filename;
-		tf_open = false;
-	else
-		error( ['FILENAME must be a string or uint64. Type is ' class(filename) '".'] )
-	end
+	% Open the first file. Assume names, numbers, and variance
+	% are consistent across files.
+	cdf_id = cdflib.open( filenames{1} );
 
 %-----------------------------------------------------%
-% Variable Names and Numbers \\\\\\\\\\\\\\\\\\\\\\\\ %
+% Variable Names, Numbers, and Variance \\\\\\\\\\\\\ %
 %-----------------------------------------------------%
 	% VARIABLE
-	varnum = cdflib.getVarNum(cdf_id, varname);
+	varnum  = cdflib.getVarNum(cdf_id, varname);
+	varinfo = cdflib.inquireVar(cdf_id, varnum);
+	varvary = varinfo.recVariance;
 	
 	% DEPEND_0
 	if nVars > 1 || tf_trange
+		% Name & Number
 		vnum_dep0  = cdflib.getAttrNum(cdf_id, 'DEPEND_0');
 		vname_dep0 = cdflib.getAttrEntry(cdf_id, vnum_dep0, varnum);
 		varsout{2} = vname_dep0;
+		
+		% Variance
+		varinfo   = cdflib.inquireVar(cdf_id, varnum);
+		vary_dep0 = varinfo.recVariance;
 	end
 	
 	% DEPEND_1
 	if nVars > 2
+		% Name & Number
 		vnum_dep1  = cdflib.getAttrNum(cdf_id, 'DEPEND_1');
 		vname_dep1 = cdflib.getAttrEntry(cdf_id, vnum_dep1, varnum);
 		varsout{3} = vname_dep1;
+		
+		% Variance
+		varinfo   = cdflib.inquireVar(cdf_id, varnum);
+		vary_dep1 = varinfo.recVariance;
+		
 	end
 	
 	% DEPEND_2
 	if nVars > 3
+		% Name & Number
 		vnum_dep2  = cdflib.getAttrNum(cdf_id, 'DEPEND_2');
 		vname_dep2 = cdflib.getAttrEntry(cdf_id, vnum_dep2, varnum);
 		varsout{4} = vname_dep2;
+		
+		% Variance
+		varinfo   = cdflib.inquireVar(cdf_id, varnum);
+		vary_dep2 = varinfo.recVariance;
 	end
 	
 	% DEPEND_3
 	if nVars > 4
+		% Name & Number
 		vnum_dep3  = cdflib.getAttrNum(cdf_id, 'DEPEND_3');
 		vname_dep3 = cdflib.getAttrEntry(cdf_id, vnum_dep3, varnum);
 		varsout{5} = vname_dep3;
+		
+		% Variance
+		varinfo   = cdflib.inquireVar(cdf_id, varnum);
+		vary_dep3 = varinfo.recVariance;
 	end
 	
-	% Close the CDF file
-	if tf_open
-		cdflib.close(cdf_id);
-	end
-
 %-----------------------------------------------------%
-% Read the Data \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+% Close the Files \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 %-----------------------------------------------------%
-
-	% One variable per cell
-	temp = cell(1, nVars);
-
-	% It is faster to call spdfcdfread 3 times for 3 variables than
-	% it is to call it once.
-	for ii = 1 : nVars
-		% Read the data
-		%   - It is much faster to read all records, then prune, than it is
-		%     to read the fixed number of records.
-		temp{ii} = spdfcdfread(filename,                                  ...
-		                       'ConvertEpochToDatenum', tf_epoch2datenum, ...
-		                       'CombineRecords',        true,             ...
-		                       'Variables',             varsout{ii},      ...
-		                       'KeepEpochAsIs',         tf_keepepochasis);
-	end
 	
 	% File validation back on
 	if ~tf_validate && strcmp(validate_in, 'VALIDATEFILEon')
 		cdflib.setValidate('VALIDATEFILEon');
 	end
 	
+	% Close all of the files
+	cdflib.close(cdf_id);
 
 %-----------------------------------------------------%
-% Extract Data \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+% Define Output Variables \\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 %-----------------------------------------------------%
-	% Cell or data?
-	data = temp{1};
+	% Define the output variables
+	data = [];
 	
-	% DEPEND_0
-	if nVars > 1
-		depend_0 = temp{2};
+	if nVars > 1 || tf_trange
+		depend_0 = [];
 	end
 	
-	% DEPEND_1
 	if nVars > 2
-		depend_1 = temp{3};
+		depend_1 = [];
 	end
 	
-	% DEPEND_2
 	if nVars > 3
-		depend_2 = temp{4};
+		depend_2 = [];
 	end
 	
-	% DEPEND_3
 	if nVars > 4
-		depend_3 = temp{5};
+		depend_3 = [];
+	end
+
+%-----------------------------------------------------%
+% Read All Other Files \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+%-----------------------------------------------------%
+	% Step through all files
+	for ii = 1 : nFiles
+
+		% One variable per cell
+		temp = cell(1, nVars);
+
+		% It is faster to call spdfcdfread 3 times for 3 variables than
+		% it is to call it once.
+		for jj = 1 : nVars
+			% Read the data
+			%   - It is much faster to read all records, then prune, than it is
+			%     to read the fixed number of records.
+			temp{jj} = spdfcdfread(filenames{ii},                             ...
+			                       'ConvertEpochToDatenum', tf_epoch2datenum, ...
+			                       'CombineRecords',        true,             ...
+			                       'Variables',             varsout{jj},      ...
+			                       'KeepEpochAsIs',         tf_keepepochasis);
+		end
+
+		% VARIABLE
+		data = vertcat( data, temp{1} );
+		
+		% DEPEND_0
+		if (nVars > 1 || tf_trange) && vary_dep0
+			depend_0 = vertcat( depend_0, temp{2} );
+		end
+		
+		% DEPEND_1
+		if nVars > 2 && vary_dep0
+			depend_1 = vertcat( depend_1, temp{3} );
+		end
+		
+		% DEPEND_2
+		if nVars > 3 && vary_dep0
+			depend_2 = vertcat( depend_2, temp{4} );
+		end
+		
+		% DEPEND_3
+		if nVars > 4 && vary_dep0
+			depend_3 = vertcat( depend_3, temp{5} );
+		end
 	end
 	
-	% Clear the temporary array
-	clear temp
+	% File validation back on
+	if ~tf_validate && strcmp(validate_in, 'VALIDATEFILEon')
+		cdflib.setValidate('VALIDATEFILEon')
+	end
 
 %-----------------------------------------------------%
 % Record Range \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
@@ -228,7 +270,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 		epoch_type = MrCDF_Epoch_Type( depend_0(1) );
 		
 		% Complete record range
-		recrange = [1, length( data(:,1) ) ];
+		recrange = [1, length( depend_0 ) ];
 
 	%-----------------------------------------------------%
 	% Start Time \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
@@ -258,4 +300,5 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 		data     = data(recrange(1):recrange(2), :);
 		depend_0 = depend_0(recrange(1):recrange(2));
 	end
+	
 end
