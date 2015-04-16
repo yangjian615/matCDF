@@ -56,6 +56,7 @@
 %
 % History:
 %   2015-04-12  -   Written by Matthew Argall
+%   2015-04-15  -   Check number of records written and time range. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
 	
@@ -127,6 +128,14 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	varnum  = cdflib.getVarNum(cdf_id, varname);
 	varinfo = cdflib.inquireVar(cdf_id, varnum);
 	varvary = varinfo.recVariance;
+	numrecs = cdflib.getVarNumRecsWritten(cdf_id, varnum);
+	
+	% Make sure there are records written
+	%   - This checks only the first file.
+	if numrecs == 0
+		msg = sprintf( 'Zero records written to variable "%s" in file "%s"', varname, filenames{1} );
+		error( msg );
+	end
 	
 	% DEPEND_0
 	if nVars > 1 || tf_trange
@@ -266,11 +275,12 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 % Record Range \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
 %-----------------------------------------------------%
 	if tf_trange
+
 		% Determine epoch type
 		epoch_type = MrCDF_Epoch_Type( depend_0(1) );
 		
 		% Complete record range
-		recrange = [1, length( depend_0 ) ];
+		recrange = [1 0];
 
 	%-----------------------------------------------------%
 	% Start Time \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
@@ -280,7 +290,17 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 			sTime_epoch = MrCDF_Epoch_Parse( sTime, epoch_type );
 			
 			% Find record start
-			recrange(1) = find( depend_0 >= sTime_epoch, 1, 'first');
+			istart = find( depend_0 >= sTime_epoch, 1, 'first');
+			
+			% Records in time interval?
+			if isempty(istart)
+				lastrec = MrCDF_Epoch_Encode(depend_0(end));
+				msg     = sprintf( 'No records found after sTime. Last record is %s', ...
+				                   lastrec{1});
+				warning('MrCDF_Read:TimeRange', msg);
+			else
+				recrange(1) = istart;
+			end
 		end
 
 	%-----------------------------------------------------%
@@ -289,9 +309,21 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 		if ~isempty(eTime)
 			% Convert to epoch
 			eTime_epoch = MrCDF_Epoch_Parse( eTime, epoch_type );
-			
+
 			% Find last record
-			recrange(2) = find( depend_0 <= eTime_epoch, 1, 'last');
+			iend = find( depend_0 <= eTime_epoch, 1, 'last');
+			
+			% Records in time interval?
+			if isempty(iend)
+				firstrec = MrCDF_Epoch_Encode(depend_0(end));
+				msg      = sprintf( 'No records found before eTime. First record is %s', ...
+				                    firstrec{1} );
+				warning('MrCDF_Read:TimeRange', msg );
+			else
+				recrange(2) = iend;
+			end
+		else
+			recrange(2) = length(depend_0);
 		end
 
 	%-----------------------------------------------------%
