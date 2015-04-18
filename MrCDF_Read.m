@@ -30,6 +30,13 @@
 %    'eTime':                 in, optional, type = char, default = ''
 %                             End time of the interval to be read,
 %                               formatted as an ISO-8601 string.
+%    'ColumnMajor'            in, optional, type = boolean, default = false
+%                             spdfcdfread v3.5.0 and greater return data in row-major
+%                               format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+%                               Convert to column major order by organizing the data as
+%                               [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
+%                               DEPEND_[123] not present if they do not exist for the
+%                               variable.
 %    'ConvertEpochToDatenum'  in, optional, type = boolean, default = false
 %                             Convert epoch times to MATLAB datenumbers.
 %    'Validate'               in, optional, type = boolean, default = false
@@ -63,12 +70,15 @@
 %                     spdfcdfread. - MRA
 %   2015-04-12  -   Accept a CDF file ID number as input. - MRA
 %   2015-04-15  -   Check number of records written and time range. - MRA
+%   2015-04-18  -   Added ColumnMajor parameter. Corrected typo when reporting
+%                     empty variable records. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, varname, varargin)
 
 	% Defaults
 	sTime = '';
 	eTime = '';
+	tf_colmajor      = false;
 	tf_epoch2datenum = false;
 	tf_validate      = false;
 	
@@ -84,6 +94,8 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 				tf_epoch2datenum = varargin{index+1};
 			case 'Validate'
 				tf_validate = varargin{index+1};
+			case 'ColumnMajor'
+				tf_colmajor = varargin{index+1};
 			otherwise
 				error(['Parameter not accepted: "' varargin{index} '".']);
 		end
@@ -135,7 +147,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 	numrecs = cdflib.getVarNumRecsWritten(cdf_id, varnum);
 
 	if numrecs == 0
-		msg = springf( 'No records found for variable %s.', varname );
+		msg = sprintf( 'No records found for variable %s.', varname );
 		warning('MrCDF_Read:Records', msg);
 	end
 	
@@ -286,5 +298,40 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 	%-----------------------------------------------------%
 		data     = data(recrange(1):recrange(2), :);
 		depend_0 = depend_0(recrange(1):recrange(2));
+	end
+
+%-----------------------------------------------------%
+% Column Major \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+%-----------------------------------------------------%
+	%
+	% spdfcdfread v3.5.0 and greater return data in row-major
+	% format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+	% Convert to column major order by organizing the data as
+	% [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
+	% DEPEND_[123] not present if they do not exist for the variable.
+	%
+	if tf_colmajor
+		nDims = ndims(data);
+		data  = permute(data, nDims:-1:1);
+		
+		if nargout > 1
+			nDims    = ndims(depend_0);
+			depend_0 = permute(depend_0, nDims:-1:1);
+		end
+		
+		if nargout > 2
+			nDims    = ndims(depend_1);
+			depend_1 = permute(depend_1, nDims:-1:1);
+		end
+		
+		if nargout > 3
+			nDims    = ndims(depend_2);
+			depend_2 = permute(depend_2, nDims:-1:1);
+		end
+		
+		if nargout > 4
+			nDims    = ndims(depend_3);
+			depend_3 = permute(depend_3, nDims:-1:1);
+		end
 	end
 end
