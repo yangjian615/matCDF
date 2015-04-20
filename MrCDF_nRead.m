@@ -25,8 +25,14 @@
 %                               formatted as an ISO-8601 string.
 %    'eTime':                 in, optional, type = char, default = ''
 %                             End time of the interval to be read,
-%                               formatted as an ISO-8601 string. The left
-%                               end of the interval is exclusive: [sTime, eTime).
+%                               formatted as an ISO-8601 string.
+%    'ColumnMajor'            in, optional, type = boolean, default = false
+%                             spdfcdfread v3.5.0 and greater return data in row-major
+%                               format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+%                               Convert to column major order by organizing the data as
+%                               [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
+%                               DEPEND_[123] not present if they do not exist for the
+%                               variable.
 %    'ConvertEpochToDatenum'  in, optional, type = boolean, default = false
 %                             Convert epoch times to MATLAB datenumbers.
 %    'Validate'               in, optional, type = boolean, default = false
@@ -57,6 +63,7 @@
 % History:
 %   2015-04-12  -   Written by Matthew Argall
 %   2015-04-15  -   Check number of records written and time range. - MRA
+%   2015-04-18  -   Added ColumnMajor parameter. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
 	
@@ -65,6 +72,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	eTime = '';
 	tf_epoch2datenum = false;
 	tf_validate      = false;
+	tf_colmajor      = false;
 	
 	% Check for optional inputs
 	nvargs = length(varargin);
@@ -74,6 +82,8 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 				sTime = [varargin{index+1} '.000'];
 			case 'eTime'
 				eTime = [varargin{index+1} '.000'];
+			case 'ColumnMajor'
+				tf_colmajor = varargin{index+1};
 			case 'ConvertEpochToDatenum'
 				tf_epoch2datenum = varargin{index+1};
 			case 'Validate'
@@ -109,6 +119,9 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 		filenames = { filenames };
 	else
 		nFiles = length(filenames);
+		warning('MrCDF_nRead:MultipleFiles', ...
+		        ['cdflib.inquireVar does not work for CDF_TIME_TT2000 values. ' ...
+		         'Assuming record variance for all variables.']);
 	end
 	
 	% Validate file?
@@ -125,9 +138,8 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 % Variable Names, Numbers, and Variance \\\\\\\\\\\\\ %
 %-----------------------------------------------------%
 	% VARIABLE
+	%   - cdflib.inquireVar will not work for CDF_TIME_TT2000 variables
 	varnum  = cdflib.getVarNum(cdf_id, varname);
-	varinfo = cdflib.inquireVar(cdf_id, varnum);
-	varvary = varinfo.recVariance;
 	numrecs = cdflib.getVarNumRecsWritten(cdf_id, varnum);
 	
 	% Make sure there are records written
@@ -143,47 +155,30 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 		vnum_dep0  = cdflib.getAttrNum(cdf_id, 'DEPEND_0');
 		vname_dep0 = cdflib.getAttrEntry(cdf_id, vnum_dep0, varnum);
 		varsout{2} = vname_dep0;
-		
-		% Variance
-		varinfo   = cdflib.inquireVar(cdf_id, varnum);
-		vary_dep0 = varinfo.recVariance;
 	end
 	
 	% DEPEND_1
 	if nVars > 2
 		% Name & Number
 		vnum_dep1  = cdflib.getAttrNum(cdf_id, 'DEPEND_1');
-		vname_dep1 = cdflib.getAttrEntry(cdf_id, vnum_dep1, varnum);
+		vname_dep1 = cdflib.getAttrEntry(cdf_id, vnum_dep1, vnum_dep1);
 		varsout{3} = vname_dep1;
-		
-		% Variance
-		varinfo   = cdflib.inquireVar(cdf_id, varnum);
-		vary_dep1 = varinfo.recVariance;
-		
 	end
 	
 	% DEPEND_2
 	if nVars > 3
 		% Name & Number
 		vnum_dep2  = cdflib.getAttrNum(cdf_id, 'DEPEND_2');
-		vname_dep2 = cdflib.getAttrEntry(cdf_id, vnum_dep2, varnum);
+		vname_dep2 = cdflib.getAttrEntry(cdf_id, vnum_dep2, vnum_dep2);
 		varsout{4} = vname_dep2;
-		
-		% Variance
-		varinfo   = cdflib.inquireVar(cdf_id, varnum);
-		vary_dep2 = varinfo.recVariance;
 	end
 	
 	% DEPEND_3
 	if nVars > 4
 		% Name & Number
 		vnum_dep3  = cdflib.getAttrNum(cdf_id, 'DEPEND_3');
-		vname_dep3 = cdflib.getAttrEntry(cdf_id, vnum_dep3, varnum);
+		vname_dep3 = cdflib.getAttrEntry(cdf_id, vnum_dep3, vnum_dep3);
 		varsout{5} = vname_dep3;
-		
-		% Variance
-		varinfo   = cdflib.inquireVar(cdf_id, varnum);
-		vary_dep3 = varinfo.recVariance;
 	end
 	
 %-----------------------------------------------------%
@@ -246,22 +241,22 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 		data = vertcat( data, temp{1} );
 		
 		% DEPEND_0
-		if (nVars > 1 || tf_trange) && vary_dep0
+		if (nVars > 1 || tf_trange)
 			depend_0 = vertcat( depend_0, temp{2} );
 		end
 		
 		% DEPEND_1
-		if nVars > 2 && vary_dep0
+		if nVars > 2
 			depend_1 = vertcat( depend_1, temp{3} );
 		end
 		
 		% DEPEND_2
-		if nVars > 3 && vary_dep0
+		if nVars > 3
 			depend_2 = vertcat( depend_2, temp{4} );
 		end
 		
 		% DEPEND_3
-		if nVars > 4 && vary_dep0
+		if nVars > 4
 			depend_3 = vertcat( depend_3, temp{5} );
 		end
 	end
@@ -331,6 +326,41 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	%-----------------------------------------------------%
 		data     = data(recrange(1):recrange(2), :);
 		depend_0 = depend_0(recrange(1):recrange(2));
+	end
+
+%-----------------------------------------------------%
+% Column Major \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+%-----------------------------------------------------%
+	%
+	% spdfcdfread v3.5.0 and greater return data in row-major
+	% format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+	% Convert to column major order by organizing the data as
+	% [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
+	% DEPEND_[123] not present if they do not exist for the variable.
+	%
+	if tf_colmajor
+		nDims = ndims(data);
+		data  = permute(data, nDims:-1:1);
+		
+		if nargout > 1
+			nDims    = ndims(depend_0);
+			depend_0 = permute(depend_0, nDims:-1:1);
+		end
+		
+		if nargout > 2
+			nDims    = ndims(depend_1);
+			depend_1 = permute(depend_1, nDims:-1:1);
+		end
+		
+		if nargout > 3
+			nDims    = ndims(depend_2);
+			depend_2 = permute(depend_2, nDims:-1:1);
+		end
+		
+		if nargout > 4
+			nDims    = ndims(depend_3);
+			depend_3 = permute(depend_3, nDims:-1:1);
+		end
 	end
 	
 end
