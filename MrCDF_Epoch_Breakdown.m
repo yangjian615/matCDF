@@ -60,22 +60,21 @@ function timevec = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
 			% Convert from Epoch to Datenum to Datestr
 			timevec = spdfbreakdownepoch(t_epoch);
 			timevec = [timevec; ...
-			           zeros(3, length(timevec(1,:)))];    % micro-, nano-, pico-seconds 
+			           zeros(3, size(timevec, 2))];    % micro-, nano-, pico-seconds 
 
 		case 'CDF_EPOCH16'
 			timevec = spdfbreakdownepoch16(t_epoch);
-
 
 		case 'CDF_TIME_TT2000'
 			% spdfbreakdowntt2000 spdf v3.5.1.2 requires column vector
 			%   - Returns Nx9 date vector
 			if isrow(t_epoch)
-				timevec = spdfbreakdowntt2000(t_epoch')';
+				timevec = spdfbreakdowntt2000(t_epoch');
 			else
 				timevec = spdfbreakdowntt2000(t_epoch);
 			end
-			timevec = [timevec; ...
-			           zeros(1, length(timevec(1,:)))];    % picoseconds
+			timevec = [timevec ...
+			           zeros(size(timevec, 1), 1)];    % picoseconds
 
 		otherwise
 			error('Input TYPE must be "CDF_EPOCH", "CDF_EPOCH16" or "CDF_TIME_TT2000".')

@@ -81,7 +81,7 @@ function t_epoch = MrCDF_Epoch_Compute(timevec, epoch_type)
     
 	% Size of each dimension
 	dims = size(timevec);
-	assert( dims(2) >=  3, 'TIMEVEC must contain at least YEAR, MONTH, DATE.');
+	assert( dims(2) >=  3, 'TIMEVEC must contain at least 3 columns: YEAR, MONTH, DAY');
 	assert( dims(2) <= 10, 'TIMEVEC can have at most 10 columns');
 
 
@@ -102,7 +102,7 @@ function t_epoch = MrCDF_Epoch_Compute(timevec, epoch_type)
 			end
 			
 			% Compute epoch
-			t_epoch = spdfcomputeepoch(timevec);
+			t_epoch = spdfcomputeepoch(timevec)';
 
 	%-----------------------------------------------------%
 	% CDF_EPOCH16 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
@@ -115,7 +115,7 @@ function t_epoch = MrCDF_Epoch_Compute(timevec, epoch_type)
 			end
 			
 			% Compute epoch
-			t_epoch = spdfcomputeepoch16(timevec);
+			t_epoch = spdfcomputeepoch16(timevec)';
 			
 	%-----------------------------------------------------%
 	% CDF_TIME_TT2000 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
@@ -132,7 +132,7 @@ function t_epoch = MrCDF_Epoch_Compute(timevec, epoch_type)
 			end
 			
 			% Compute epoch
-			t_epoch = spdfcomputett2000(timevec);
+			t_epoch = spdfcomputett2000(timevec)';
 
 		otherwise
 			error('EPOCH_TYPE must be "CDF_EPOCH", "CDF_EPOCH16" or "CDF_TIME_TT2000".')
