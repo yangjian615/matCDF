@@ -247,6 +247,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_Read(filename, v
 		epoch_type = MrCDF_Epoch_Type( depend_0(1) );
 		
 		% Complete record range
+		%   - Define it initially to return an empty array if not altered.
 		recrange = [1, 0];
 
 	%-----------------------------------------------------%

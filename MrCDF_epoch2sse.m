@@ -80,7 +80,7 @@ function t_sse = MrCDF_epoch2sse(t_epoch, varargin)
 			
 		case 'CDF_EPOCH16'
 			t_sse = ( t_epoch(:,1) - t_ref(1,1) ) + ...
-				      ( t_epoch(:,2) - t_ref(1,2) ) .* 1e-12;
+			        ( t_epoch(:,2) - t_ref(1,2) ) .* 1e-12;
 
 		case 'CDF_TIME_TT2000'
 			t_sse = double( t_epoch - t_ref ) .* 1e-9;
