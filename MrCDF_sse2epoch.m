@@ -19,32 +19,32 @@
 %
 % Examples:
 %   Create CDF epoch times, convert to SSE, then convert back to epoch.
-% 		datetime = repmat( [2015 03 18 0 0], 10, 1 );
-% 		second   = (1:1:10)';
-% 		datetime = [datetime second];
+%     datetime = repmat( [2015 03 18 0 0], 10, 1 );
+%     second   = (1:1:10)';
+%     datetime = [datetime second];
 % 
-% 		t_epoch   = spdfcomputeepoch(   [datetime, zeros(10, 1)] );
-% 		t_epoch16 = spdfcomputeepoch16( [datetime, zeros(10, 4)] );
-% 		t_tt2000  = spdfcomputett2000(  [datetime, zeros(10, 3)] );
+%     t_epoch   = spdfcomputeepoch(   [datetime, zeros(10, 1)] );
+%     t_epoch16 = spdfcomputeepoch16( [datetime, zeros(10, 4)] );
+%     t_tt2000  = spdfcomputett2000(  [datetime, zeros(10, 3)] );
 % 
-% 		t_sse_epoch   = MrCDF_epoch2sse(t_epoch);
-% 		t_sse_epoch16 = MrCDF_epoch2sse(t_epoch16);
-% 		t_sse_tt2000  = MrCDF_epoch2sse(t_tt2000);
+%     t_sse_epoch   = MrCDF_epoch2sse(t_epoch);
+%     t_sse_epoch16 = MrCDF_epoch2sse(t_epoch16);
+%     t_sse_tt2000  = MrCDF_epoch2sse(t_tt2000);
 % 
-% 		t_ep = MrCDF_sse2epoch(t_sse_epoch,   t_epoch(1));
-% 		t_16 = MrCDF_sse2epoch(t_sse_epoch16, t_epoch16(1,:));
-% 		t_tt = MrCDF_sse2epoch(t_sse_tt2000,  t_tt2000(1));
+%     t_ep = MrCDF_sse2epoch(t_sse_epoch,   t_epoch(1));
+%     t_16 = MrCDF_sse2epoch(t_sse_epoch16, t_epoch16(1,:));
+%     t_tt = MrCDF_sse2epoch(t_sse_tt2000,  t_tt2000(1));
 %
-% 		t_epoch' == t_ep'
-% 		ans =
-% 				 1     1     1     1     1     1     1     1     1     1
-% 		t_epoch16' == t_16'
-% 		ans =
-% 				 1     1     1     1     1     1     1     1     1     1
-% 				 1     1     1     1     1     1     1     1     1     1
-% 		t_tt2000' == t_tt'
-% 		ans =
-% 				 1     1     1     1     1     1     1     1     1     1
+%     t_epoch' == t_ep'
+%     ans =
+%            1     1     1     1     1     1     1     1     1     1
+%     t_epoch16' == t_16'
+%     ans =
+%            1     1     1     1     1     1     1     1     1     1
+%            1     1     1     1     1     1     1     1     1     1
+%     t_tt2000' == t_tt'
+%     ans =
+%            1     1     1     1     1     1     1     1     1     1
 %
 % :Parameters:
 %   T_EPOCH          in, required, type = 'CDF_EPOCH', 'CDF_EPOCH16', or 'CDF_TIME_TT2000'

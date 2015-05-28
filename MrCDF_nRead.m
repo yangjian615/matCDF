@@ -310,7 +310,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 			
 			% Records in time interval?
 			if isempty(iend)
-				firstrec = MrCDF_Epoch_Encode(depend_0(end));
+				firstrec = MrCDF_Epoch_Encode(depend_0(1));
 				msg      = sprintf( 'No records found before eTime. First record is %s', ...
 				                    firstrec{1} );
 				warning('MrCDF_Read:TimeRange', msg );
