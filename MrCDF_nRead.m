@@ -115,14 +115,18 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 
 	% Number of files
 	if ischar(filenames)
+		assert( isrow(filenames), 'FILENAMES must be a single string or cell array of strings.' )
 		nFiles    = 1;
 		filenames = { filenames };
-	else
+		
+	elseif iscell(filenames)
 		nFiles = length(filenames);
 		warning('MrCDF_nRead:MultipleFiles', ...
 		        ['cdflib.inquireVar does not work for CDF_TIME_TT2000 values. ' ...
 		         'Assuming record variance for all variables.']);
-	end
+	else
+		error( 'FILENAMES must be a string or cell array of strings.' )
+	end 
 	
 	% Validate file?
 	validate_in = cdflib.getValidate();
