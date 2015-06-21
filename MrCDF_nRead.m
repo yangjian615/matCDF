@@ -66,7 +66,7 @@
 %   2015-04-18  -   Added ColumnMajor parameter. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
-	
+
 	% Defaults
 	sTime = '';
 	eTime = '';
@@ -75,13 +75,13 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	tf_colmajor      = false;
 	
 	% Check for optional inputs
-	nvargs = length(varargin);
-	for index = 1:2:nvargs
+	nOptArgs = length(varargin);
+	for index = 1 : 2 : nOptArgs
 		switch varargin{index}
 			case 'sTime'
-				sTime = [varargin{index+1} '.000'];
+				sTime = varargin{index+1};
 			case 'eTime'
-				eTime = [varargin{index+1} '.000'];
+				eTime = varargin{index+1};
 			case 'ColumnMajor'
 				tf_colmajor = varargin{index+1};
 			case 'ConvertEpochToDatenum'
@@ -100,6 +100,17 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	else
 		tf_trange = true;
 	end
+
+	if ~isempty(sTime)
+		assert( MrTokens_IsMatch(sTime, '%Y-%M-%dT%H:%m:%S'), ...
+		        'sTime be formatted as "yyyy-mm-ddTHH:MM:SS"' )
+		sTime = [sTime '.000'];
+	end
+	if ~isempty(eTime)
+		assert( MrTokens_IsMatch(eTime, '%Y-%M-%dT%H:%m:%S'), ...
+		        'eTime be formatted as "yyyy-mm-ddTHH:MM:SS"' )
+		eTime = [eTime '.000'];
+	end
 	
 	% Number of variables to read
 	nVars = nargout();
@@ -115,18 +126,14 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 
 	% Number of files
 	if ischar(filenames)
-		assert( isrow(filenames), 'FILENAMES must be a single string or cell array of strings.' )
 		nFiles    = 1;
 		filenames = { filenames };
-		
-	elseif iscell(filenames)
+	else
 		nFiles = length(filenames);
 		warning('MrCDF_nRead:MultipleFiles', ...
 		        ['cdflib.inquireVar does not work for CDF_TIME_TT2000 values. ' ...
 		         'Assuming record variance for all variables.']);
-	else
-		error( 'FILENAMES must be a string or cell array of strings.' )
-	end 
+	end
 	
 	% Validate file?
 	validate_in = cdflib.getValidate();
