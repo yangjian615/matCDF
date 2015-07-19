@@ -64,6 +64,7 @@
 %   2015-04-12  -   Written by Matthew Argall
 %   2015-04-15  -   Check number of records written and time range. - MRA
 %   2015-04-18  -   Added ColumnMajor parameter. - MRA
+%   2015-07-15  -   Issue warning if no data in given interval. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
 
@@ -330,6 +331,19 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 			end
 		else
 			recrange(2) = length(depend_0);
+		end
+
+	%-----------------------------------------------------%
+	% Missing Data \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ %
+	%-----------------------------------------------------%
+		%
+		% If iend = istart - 1, then sTime and eTime fall
+		% within a data gap.
+		%
+		if iend == istart - 1
+			warning('MrCDF_nRead:SelectInterval', 'No data in given interval. Probable data gap.');
+		elseif iend < istart - 1
+			error('Invalid record range encountered. Check that time is monotonic.');
 		end
 
 	%-----------------------------------------------------%
