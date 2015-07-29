@@ -32,9 +32,13 @@
 %                               Convert to column major order by organizing the data as
 %                               [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
 %                               DEPEND_[123] not present if they do not exist for the
-%                               variable.
+%                               variable.  If 'RowMajor' is not set, this is the default.
 %    'ConvertEpochToDatenum'  in, optional, type = boolean, default = false
 %                             Convert epoch times to MATLAB datenumbers.
+%    'RowMajor'               in, optional, type = boolean, default = false
+%                             spdfcdfread v3.5.0 and greater return data in row-major
+%                               format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+%                               Set this keyword to true to keep output in this format.
 %    'Validate'               in, optional, type = boolean, default = false
 %                             Validate the CDF file upon opening. This
 %                               is slow and does not work if the files
@@ -64,6 +68,7 @@
 %   2015-04-12  -   Written by Matthew Argall
 %   2015-04-15  -   Check number of records written and time range. - MRA
 %   2015-04-18  -   Added ColumnMajor parameter. - MRA
+%   2015-04-18  -   Added RowMajor parameter. ColumnMajor is now the default. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
 
@@ -73,6 +78,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	tf_epoch2datenum = false;
 	tf_validate      = false;
 	tf_colmajor      = false;
+	tf_rowmajor      = false;
 	
 	% Check for optional inputs
 	nOptArgs = length(varargin);
@@ -86,6 +92,8 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 				tf_colmajor = varargin{index+1};
 			case 'ConvertEpochToDatenum'
 				tf_epoch2datenum = varargin{index+1};
+			case 'RowMajor'
+				tf_rowmajor = varargin{index+1};
 			case 'Validate'
 				tf_validate = varargin{index+1};
 			otherwise
@@ -93,6 +101,15 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 		end
 	end
 	tf_keepepochasis = ~tf_epoch2datenum;
+	
+	% Majority
+	%   - Set TF_COLMAJOR and only check that.
+	assert( ~tf_colmajor || ~tf_rowmajor, 'RowMajor and ColumnMajor are mutually exclusive')
+	if ~tf_colmajor && ~tf_rowmajor
+		tf_colmajor = true;
+	elseif tf_rowmajor
+		tf_colmajor = false;
+	end
 	
 	% Get a time range?
 	if isempty(sTime) && isempty(eTime)
