@@ -43,8 +43,7 @@
 %    CDF MatLab Patch v3.5.1 - http://cdf.gsfc.nasa.gov/html/matlab_cdf_patch.html
 %
 % History:
-%    2014-11-29  -  Written by Matthew Argall
-%    2015-03-18  -  Updated to use CDF Patch v3.5.1. Removed TYPE parameter. - MRA
+%    2014-08-23  -  Written by Matthew Argall
 %
 %**************************************************************************
 function timevec = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
@@ -57,10 +56,7 @@ function timevec = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
 	% Breakdown the epoch value
 	switch epoch_type
 		case 'CDF_EPOCH'
-			% Convert from Epoch to Datenum to Datestr
 			timevec = spdfbreakdownepoch(t_epoch);
-			timevec = [timevec; ...
-			           zeros(3, size(timevec, 2))];    % micro-, nano-, pico-seconds 
 
 		case 'CDF_EPOCH16'
 			timevec = spdfbreakdownepoch16(t_epoch);
@@ -73,8 +69,6 @@ function timevec = MrCDF_Epoch_Breakdown(t_epoch, epoch_type)
 			else
 				timevec = spdfbreakdowntt2000(t_epoch);
 			end
-			timevec = [timevec ...
-			           zeros(size(timevec, 1), 1)];    % picoseconds
 
 		otherwise
 			error('Input TYPE must be "CDF_EPOCH", "CDF_EPOCH16" or "CDF_TIME_TT2000".')
