@@ -26,7 +26,7 @@
 %    'eTime':                 in, optional, type = char, default = ''
 %                             End time of the interval to be read,
 %                               formatted as an ISO-8601 string.
-%    'ColumnMajor'            in, optional, type = boolean, default = false
+%    'ColumnMajor'            in, optional, type = boolean, default = true
 %                             spdfcdfread v3.5.0 and greater return data in row-major
 %                               format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
 %                               Convert to column major order by organizing the data as
@@ -148,9 +148,9 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 		filenames = { filenames };
 	else
 		nFiles = length(filenames);
-		warning('MrCDF_nRead:MultipleFiles', ...
-		        ['cdflib.inquireVar does not work for CDF_TIME_TT2000 values. ' ...
-		         'Assuming record variance for all variables.']);
+		mrfprintf('logwarn', 'MrCDF_nRead:MultipleFiles', ...
+		          ['cdflib.inquireVar does not work for CDF_TIME_TT2000 values. ' ...
+		           'Assuming record variance for all variables.']);
 	end
 	
 	% Validate file?

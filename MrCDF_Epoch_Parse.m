@@ -58,6 +58,6 @@ function t_epoch = MrCDF_Epoch_Parse(time, epoch_type)
 		case 'CDF_TIME_TT2000'
 			t_epoch = spdfparsett2000(time);
 		otherwise
-			error('TYPE must be {"CDF_EPOCH" | "CDF_EPOCH16" | "CDF_TIME_TT2000"}.');
+			error('EPOCH_TYPE must be {"CDF_EPOCH" | "CDF_EPOCH16" | "CDF_TIME_TT2000"}.');
 	end
 end
