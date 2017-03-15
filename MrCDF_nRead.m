@@ -28,16 +28,16 @@
 %                               formatted as an ISO-8601 string.
 %    'ColumnMajor'            in, optional, type = boolean, default = true
 %                             spdfcdfread v3.5.0 and greater return data in row-major
-%                               format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+%                               format with [DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
 %                               Convert to column major order by organizing the data as
-%                               [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
+%                               [DEPEND_1, DEPEND_2, DEPEND_3, DEPEND_0, recs], with
 %                               DEPEND_[123] not present if they do not exist for the
 %                               variable.  If 'RowMajor' is not set, this is the default.
 %    'ConvertEpochToDatenum'  in, optional, type = boolean, default = false
 %                             Convert epoch times to MATLAB datenumbers.
 %    'RowMajor'               in, optional, type = boolean, default = false
 %                             spdfcdfread v3.5.0 and greater return data in row-major
-%                               format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+%                               format with [DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
 %                               Set this keyword to true to keep output in this format.
 %    'Validate'               in, optional, type = boolean, default = false
 %                             Validate the CDF file upon opening. This
@@ -70,6 +70,7 @@
 %   2015-04-18  -   Added ColumnMajor parameter. - MRA
 %   2015-07-15  -   Issue warning if no data in given interval. - MRA
 %   2015-07-28  -   Added RowMajor parameter. ColumnMajor is now the default. - MRA
+%   2016-10-25  -   DEPEND_[1-3] variable names are read from correct entry number. - MRA
 %
 function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames, varname, varargin)
 
@@ -190,7 +191,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	if nVars > 2
 		% Name & Number
 		vnum_dep1  = cdflib.getAttrNum(cdf_id, 'DEPEND_1');
-		vname_dep1 = cdflib.getAttrEntry(cdf_id, vnum_dep1, vnum_dep1);
+		vname_dep1 = cdflib.getAttrEntry(cdf_id, vnum_dep1, varnum);
 		varsout{3} = vname_dep1;
 	end
 	
@@ -198,7 +199,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	if nVars > 3
 		% Name & Number
 		vnum_dep2  = cdflib.getAttrNum(cdf_id, 'DEPEND_2');
-		vname_dep2 = cdflib.getAttrEntry(cdf_id, vnum_dep2, vnum_dep2);
+		vname_dep2 = cdflib.getAttrEntry(cdf_id, vnum_dep2, varnum);
 		varsout{4} = vname_dep2;
 	end
 	
@@ -206,7 +207,7 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 	if nVars > 4
 		% Name & Number
 		vnum_dep3  = cdflib.getAttrNum(cdf_id, 'DEPEND_3');
-		vname_dep3 = cdflib.getAttrEntry(cdf_id, vnum_dep3, vnum_dep3);
+		vname_dep3 = cdflib.getAttrEntry(cdf_id, vnum_dep3, varnum);
 		varsout{5} = vname_dep3;
 	end
 	
@@ -375,34 +376,46 @@ function [data, depend_0, depend_1, depend_2, depend_3] = MrCDF_nRead(filenames,
 %-----------------------------------------------------%
 	%
 	% spdfcdfread v3.5.0 and greater return data in row-major
-	% format with [recs, DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
+	% format with [DEPEND_0, DEPEND_1, DEPEND_2, DEPEND_3].
 	% Convert to column major order by organizing the data as
-	% [DEPEND_3, DEPEND_2, DEPEND_1, DEPEND_0, recs], with
+	% [DEPEND_1, DEPEND_2, DEPEND_3, DEPEND_0], with
 	% DEPEND_[123] not present if they do not exist for the variable.
+	%
+	% Permute DEPEND_[123] if they are record-varying. This is
+	% determined by checking the size of the list dimension and
+	% comparing it to the number of records in DATA.
 	%
 	if tf_colmajor
 		nDims = ndims(data);
-		data  = permute(data, nDims:-1:1);
+		nRecs = size(data, 1);
+		data  = permute(data, [2:nDims, 1]);
 		
 		if nargout > 1
-			nDims    = ndims(depend_0);
-			depend_0 = permute(depend_0, nDims:-1:1);
+			nDims = ndims(depend_0);
+			if size(depend_0, 1) == nRecs
+				depend_0 = permute(depend_0, [2:nDims, 1]);
+			end
 		end
 		
 		if nargout > 2
-			nDims    = ndims(depend_1);
-			depend_1 = permute(depend_1, nDims:-1:1);
+			nDims = ndims(depend_1);
+			if size(depend_1, 1) == nRecs
+				depend_1 = permute(depend_1, [2:nDims, 1]);
+			end
 		end
 		
 		if nargout > 3
-			nDims    = ndims(depend_2);
-			depend_2 = permute(depend_2, nDims:-1:1);
+			nDims = ndims(depend_2);
+			if size(depend_2, 1) == nRecs
+				depend_2 = permute(depend_2, [2:nDims, 1]);
+			end
 		end
 		
 		if nargout > 4
-			nDims    = ndims(depend_3);
-			depend_3 = permute(depend_3, nDims:-1:1);
+			nDims = ndims(depend_3);
+			if size(depend_3, 1) == nRecs
+				depend_3 = permute(depend_3, [2:nDims, 1]);
+			end
 		end
 	end
-	
 end
