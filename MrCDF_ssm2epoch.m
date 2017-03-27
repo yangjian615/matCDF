@@ -45,6 +45,7 @@
 %
 % History:
 %   2015-08-24      Written by Matthew Argall
+%   2016-06-04      Reference time converted to epoch correctly. - MRA
 %
 function t_epoch = MrCDF_ssm2epoch(t_ssm, date, epoch_type)
 
@@ -70,15 +71,15 @@ function t_epoch = MrCDF_ssm2epoch(t_ssm, date, epoch_type)
 	% Append the correct number of zeros
 	switch epoch_type
 		case 'CDF_EPOCH'
-			t0      = spdfcomputeepoch( [dvec zeros(nTimes, 7-ndvec)] );
+			t0      = spdfcomputeepoch( [dvec zeros(1, 7-ndvec)] );
 			t_epoch = (t_ssm * 1e3) + t0;
 		case 'CDF_EPOCH16'
-			t0      = spdfcomputeepoch16( [dvec zeros(nTimes, 10-ndvec)] );
+			t0      = spdfcomputeepoch16( [dvec zeros(1, 10-ndvec)] );
 			pico    = fix( mod(t_ssm, 1) * 1e12 ) + t0(1,2);
 			seconds = fix(t_ssm) + t0(1,1);
 			t_epoch = [seconds pico];
 		case 'CDF_TIME_TT2000'
-			t0      = spdfcomputett2000( [dvec zeros(nTimes, 9-ndvec)] );
+			t0      = spdfcomputett2000( [dvec zeros(1, 9-ndvec)] );
 			t_epoch = int64( t_ssm * 1e9 ) + t0;
 		otherwise
 			error(['Unknown epoch type: "' epoch_type '".'])'
